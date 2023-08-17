@@ -1,6 +1,6 @@
 import requests
 from loguru import logger
-from utils import read_yaml, set_time_limit, get_date, create_name, create_dir, write_yaml
+from utils import GenerateFile, read_yaml, set_time_limit, get_date, create_name, create_dir, write_yaml
 import sys
 import os
 import base64
@@ -8,9 +8,9 @@ import zipfile
 
 
 class StableDiffusionApi:
-    URLS = read_yaml("./urls.yaml")
     INPUT_PATH = "/root/autodl-tmp/program/src"
     OUTPUT_PATH = "/root/autodl-tmp/program/src/outputs"
+    URLS = read_yaml(f"{INPUT_PATH}/conf/urls.yml")
     # OUT_TIME = 3600
 
     def __init__(self):
