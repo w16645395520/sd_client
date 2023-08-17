@@ -1,0 +1,16 @@
+# 提示题相关性
+cfg_scale: 8
+# 生成图片的宽度
+width: 768
+# 生成图片的高度
+height: 1024
+# 输入图片的base64编码组成的list
+init_images: []
+# 重复次数
+n_iter: 1
+# 单次的张数
+batch_size: 4
+# 采样器
+sampler_index: Euler
+# 训练步数
+steps: 10

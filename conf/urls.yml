@@ -7,3 +7,4 @@ get_config: https://u166897-9777-8d04f6ab.westa.seetacloud.com:8443/SD-WEBUI/sda
 set_config: https://u166897-9777-8d04f6ab.westa.seetacloud.com:8443/SD-WEBUI/sdapi/v1/options
 txt2img: https://u166897-9777-8d04f6ab.westa.seetacloud.com:8443/SD-WEBUI/sdapi/v1/txt2img
 img2img: https://u166897-9777-8d04f6ab.westa.seetacloud.com:8443/SD-WEBUI/sdapi/v1/img2img
+high_definition: https://u166897-9777-8d04f6ab.westa.seetacloud.com:8443/SD-WEBUI/sdapi/v1/extra-batch-images
