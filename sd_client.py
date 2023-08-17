@@ -1,19 +1,23 @@
 import requests
-import yaml
 from loguru import logger
-from utils import read_yaml, set_time_limit
+from utils import read_yaml, set_time_limit, get_date, create_name, create_dir, write_yaml
 import sys
+import os
 import base64
+import zipfile
 
 
 class StableDiffusionApi:
-    URLS = read_yaml("./config.yaml")
-    OUT_TIME = 3600
+    URLS = read_yaml("./urls.yaml")
+    INPUT_PATH = "/root/autodl-tmp/program/src"
+    OUTPUT_PATH = "/root/autodl-tmp/program/src/outputs"
+    # OUT_TIME = 3600
+
     def __init__(self):
         """Init"""
         logger.debug(f"load URL Config: {self.URLS}")
 
-    @set_time_limit(OUT_TIME, sys._getframe())
+    # @set_time_limit(OUT_TIME, sys._getframe())
     def __post__(self, url, rdata=None, jdata=None):
         """POST请求"""
         response = None
@@ -23,7 +27,7 @@ class StableDiffusionApi:
             logger.error("POST error")
         return response
 
-    @set_time_limit(OUT_TIME, sys._getframe())
+    # @set_time_limit(OUT_TIME, sys._getframe())
     def __get__(self, url, header=None):
         response = None
         try:
@@ -60,7 +64,7 @@ class StableDiffusionApi:
     def set_sd_config(self, **args):
         """设置（修改）模型参数信息"""
         # 支持修改所有的get_sd_config获取的所有参数
-        response = self.__post__(self.URLS["set_config"])
+        response = self.__post__(self.URLS["set_config"], jdata=args)
     
     def txt2img(self, **arg):
         """文生图"""
@@ -74,42 +78,78 @@ class StableDiffusionApi:
             "n_iter": 1,
             "sampler_index": "Euler"
         }
-        # response.json().keys() = ['images', 'parameters', 'info']
         response = self.__post__(self.URLS["txt2img"], jdata=data)
         
-    def img2img(self, **arg):
+        # 创建生成图片文件夹，并进行打包
+        generate_path = f"{self.OUTPUT_PATH}/{create_name(flag=True)}"
+        create_dir(generate_path)
+        self.file_store(response.json()["images"], path=generate_path, pack=True)
+        # zip文件路径 generate_path + ".zip"
+        return f"{generate_path}.zip"
+
+    def img2img(self, img_base64_list: list):
         """图生图"""
-        with open("./01.png", "rb") as f:
-            png = f.read()
-        
+        # 检测图片存储目录，没有就创建
+        path = f"{self.INPUT_PATH}/img2img/" + "/".join(get_date())
+        create_dir(path)
+
+        # 存储输入图片
+        self.file_store(img_base64_list, path)
+
         data = {
-            "init_images": [base64.b64encode(png).decode()],
+            "init_images": img_base64_list,
             "steps": 10,
             "cfg_scale": 8,
             "width": 768,
             "height": 1024,
-            "n_iter": 1,
+            "n_iter": 2,
             "sampler_index": "Euler"
         }
         response = self.__post__(self.URLS["img2img"], jdata=data)
-        response = requests.post(self.URLS["img2img"], json=data)
-        print(response.json())
+
+        # 创建生成图片文件夹，并进行打包
+        generate_path = f"{self.OUTPUT_PATH}/{create_name(flag=True)}"
+        create_dir(generate_path)
+        self.file_store(response.json()["images"], path=generate_path, pack=True)
+        # zip文件路径 generate_path + ".zip"
+        return f"{generate_path}.zip"
         
 
+    def file_store(self, images: list[bytes]=None, path=None, pack=False):
+        """文件存储、打包"""
+        if pack:
+            # 打包
+            zip_obj = zipfile.ZipFile(path + ".zip", "w")
+        try:
+            for img in images:
+                img1 = base64.b64decode(img.encode())
+                # 处理后缀问题
+                t = str(img1[:20]).split("\\r")[0].lower()
+                sfx = "png"
+                for sfx in ["png", "jpeg"]:
+                    if sfx in t:
+                        break
+                # 图片文件名称
+                file_name = create_name(img1) + f".{sfx}"
+                file_path = os.path.join(path, file_name)
+                with open(file_path, "wb") as f:
+                    f.write(img1)
+                # 写入压缩文件中
+                if pack:
+                    zip_obj.write(file_path, file_name)
+        finally:
+            if pack:
+                zip_obj.close()
 
-        
 
-sd = StableDiffusionApi()
-sd.img2img(a=1)
 
-# 获取内置信息
-# response = requests.get(config["get_config"])
-# print(response.json())
 
-# # 设置模型
-# response = requests.post(config["set_config"], json={"sd_model_checkpoint": "f222.safetensors", "samples_save": True})
-# print(response.json())
 
-# response = requests.get(config["get_config"])
-# print(response.json())
+# sd = StableDiffusionApi()
+
+# with open("./01.png", "rb") as f:
+#     png = f.read()
+
+# # sd.img2img(img_base64_list=[base64.b64encode(png).decode()])
+# sd.get_sd_config()
 

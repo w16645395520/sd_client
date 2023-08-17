@@ -1,11 +1,14 @@
 #encoding=utf-8
+import os
 import yaml
 import time
-import os
+import datetime
 from functools import wraps
 from threading import Thread
 from loguru import logger
 from jinja2 import Environment, FileSystemLoader
+import hashlib
+import json
 
 
 def read_yaml(path):
@@ -13,6 +16,10 @@ def read_yaml(path):
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
+def write_yaml(path, content: json):
+    """写入yaml文件"""
+    with open(path, "w", encoding="utf-8") as f:
+        yaml.safe_dump(content, f, indent=4, allow_unicode=True)
 
 def set_time_limit(t, a):
     def auto_quit(t1, a):
@@ -38,6 +45,38 @@ def set_time_limit(t, a):
             t2.join() # 满足第3点
         return wrapper
     return decorator
+
+
+def get_date():
+    current_time = datetime.datetime.now()
+    result = str(current_time).split()[0].split("-")
+    return result
+
+
+def create_dir(path="/root/autodl-tmp/program/src"):
+    if os.path.isdir(path):
+        return True
+    try:
+        os.makedirs(path)
+    except FileExistsError as e:
+        logger.error(f"Owned Path: {path}")
+    return True
+
+
+def create_name(content = None, flag: bool = False):
+    """生成名字"""
+    if flag:
+        # 时间编码
+        return hashlib.md5(str(time.time()).encode("utf-8")).hexdigest()
+    # 内容编码
+    if isinstance(content, str) and content is not None:
+        result = hashlib.md5(content.encode("utf-8")).hexdigest()
+    elif isinstance(content, bytes) and content is not None:
+        result = hashlib.md5(content).hexdigest()
+    else:
+        logger.error(f"content[:10]: {content[:10]}; flag: {flag}")
+        raise
+    return result
 
 
 
