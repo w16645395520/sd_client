@@ -26,16 +26,6 @@ class StableDiffusionApi:
         logger.debug(f"load URL Config: {self.URLS}")
         self.load_config()
 
-    # @set_time_limit(OUT_TIME, sys._getframe())
-    def __post__(self, url, rdata=None, jdata=None):
-        """POST请求"""
-        response = None
-        try:
-            response = requests.post(url=url, data=rdata, json=jdata)
-        except:
-            logger.error("POST error")
-        return response
-
     def load_config(self):
         """加载配置文件"""
         self.conf = dict()
@@ -45,6 +35,16 @@ class StableDiffusionApi:
                 if s != "yml":
                     continue
                 self.conf[n] = read_yaml(os.path.join(root, name))
+
+    # @set_time_limit(OUT_TIME, sys._getframe())
+    def __post__(self, url, rdata=None, jdata=None):
+        """POST请求"""
+        response = None
+        try:
+            response = requests.post(url=url, data=rdata, json=jdata)
+        except:
+            logger.error("POST error")
+        return response
 
     # @set_time_limit(OUT_TIME, sys._getframe())
     def __get__(self, url, header=None):
@@ -85,18 +85,19 @@ class StableDiffusionApi:
         # 支持修改所有的get_sd_config获取的所有参数
         response = self.__post__(self.URLS["set_config"], jdata=args)
     
-    def txt2img(self, **arg):
+    def txt2img(self, **args):
         """文生图"""
-        data = {
-            "prompt": "best quality, ultra high res, (photorealistic:1.4), 1girl, brown blazer, black skirt, glasses, thighhighs, ((T shirt)), (upper body), (Kpop idol), (aegyo sal:1), (platinum   blonde hair:1), ((puffy eyes)), looking at viewer, facing front, smiling",
-            "negative_prompt": "nsfw, paintings, sketches, (worst quality:2), (low quality:2), (normal quality:2), lowres, normal quality, ((monochrome)), ((grayscale)), skin spots, acnes, age spot, glan",
-            "steps": 10,
-            "cfg_scale": 8,
-            "width": 768,
-            "height": 1024,
-            "n_iter": 1,
-            "sampler_index": "Euler"
-        }
+        # 获取参数信息
+        try:
+            data = self.conf.get(inspect.stack()[0][3])
+        except:
+            logger.error("txt2img 未设置对应的yml文件")
+
+        for k, v in args.items():
+            if k in data:
+                data[k] = v
+            else:
+                logger.info(f"txt2img 的默认参数中, 是否需要增加参数: {k} = {v}")
         response = self.__post__(self.URLS["txt2img"], jdata=data)
         
         # 创建生成图片文件夹，并进行打包
@@ -198,36 +199,16 @@ class StableDiffusionApi:
 
 
 
-sd = StableDiffusionApi()
+# sd = StableDiffusionApi()
 
-with open("./01.png", "rb") as f:
-    png = f.read()
+# with open("./01.png", "rb") as f:
+#     png = f.read()
 
-sd.high_definition(img_base64_list=[
-    {"data": base64.b64encode(png).decode()
-     ,"name": "a.png"}
-])
+# sd.high_definition(img_base64_list=[
+#     {"data": base64.b64encode(png).decode()
+#      ,"name": "a.png"}
+# ])
 # sd.img2img(img_base64_list=[base64.b64encode(png).decode()])
-# write_yaml("setting.yaml", sd.get_sd_config().json())
-
-# data = {
-#     "init_images": "img_base64_list",
-#     "steps": 10,
-#     "cfg_scale": 8,
-#     "width": 768,
-#     "height": 1024,
-#     "n_iter": 2,
-#     "sampler_index": "Euler"
-# }
-# write_yaml("t.yaml", data)
-
-
-# import inspect
-# def foo(a, **args):
-#     print(a)
-#     for k, v in args.items():
-#         print([k, v])
-
-
-
-# foo(a=1, b=2, c=3)
+url = "http://117.161.233.118:8051/sdapi/v1/samplers"
+response = requests.get(url)
+write_yaml("a.yaml", response.json())
